@@ -52,22 +52,77 @@
     }
 
     Plugin.prototype.init = function () {
-        // Place initialization logic here
-        // You already have access to the DOM element and
-        // the options via the instance, e.g. this.element 
-        // and this.options
-    	console.log('test');
+        if (!this.options.github_username) {
+			throw 'githubEncryptedStorage requires the github_username option';
+		}
+		if (!this.options.github_password) {
+			throw 'githubEncryptedStorage requires the github_password option';
+		}
+		if (!this.options.github_repo) {
+			throw 'githubEncryptedStorage requires the github_repo option';
+		}
+		
+		this._github_repos_url = 'https://api.github.com/repos/' + this.options.github_username + '/' + this.options.github_repo;
+
+		this._labels = null;
+		this._labelsLoaded = false;
     };
+    
+    Plugin.prototype.decrypt = function (cypher_text) {
+    	var stringified = cypher_text;
+    	
+    	if (this.options.encryption_passphrase) {
+    		var decrypted = CryptoJS.AES.decrypt(cypher_text, this.options.encryption_passphrase);
+			
+			var stringified = decrypted.toString(CryptoJS.enc.Utf8);
+    	}
+		
+		return JSON.parse(stringified);
+    }
+    
+    Plugin.prototype.encrypt = function (json_object) {
+    	var stringified = JSON.stringify(json_object);
+    	
+    	if (!this.options.encryption_passphrase)
+    		return stringified;
+
+		var encrypted = CryptoJS.AES.encrypt(stringified, this.options.encryption_passphrase);
+		
+		return encrypted.toString();
+    }
+    
+    Plugin.prototype.loadLabels = function () {
+		this.labelsLoaded = false;
+		
+		$.ajax({
+			url: this._github_repos_url + '/labels',
+			method: 'GET'
+		}).success(function(data) {
+			this._labels = data;
+			this._labelsLoaded = true;
+		}).error(function(e) {
+			console.log(e);
+			throw 'Error while connecting to github repo';
+		});
+    };
+    
+    Plugin.prototype.labels = function () {
+    	if (!this._labelsLoaded) {
+    		throw 'Labels have not been loaded yet!';
+    	}
+    	
+    	return this._labels;
+    }
 
     // A really lightweight plugin wrapper around the constructor, 
     // preventing against multiple instantiations
     $[pluginName] = function ( options ) {
-        return this.each(function () {
-            if (!$.data(this, 'plugin_' + pluginName)) {
-                $.data(this, 'plugin_' + pluginName, 
-                new Plugin( this, options ));
-            }
-        });
+        if (!$.data(this, 'plugin_' + pluginName)) {
+            $.data(this, 'plugin_' + pluginName, 
+            new Plugin( this, options ));
+            
+            return $.data(this, 'plugin_' + pluginName);
+        }
     }
 
 })( jQuery, window, document );
