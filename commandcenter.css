@@ -1,0 +1,33 @@
+body {
+	padding-top: 60px;
+}
+
+.panel-block .block {
+    height: 250px;
+	overflow-y: auto;
+}
+
+.badge {
+	padding: 3px 5px;
+	font-size: 10px;
+	background-color: rgba(0, 0, 0, .2);
+}
+
+#add-todo-btn {
+	margin-left: 30px;
+}
+
+.alert-small {
+	padding: 5px;
+	margin-bottom: 5px;
+}
+
+.btn-todo-label,
+.btn-label-filter {
+	opacity: .5;
+}
+
+.btn-todo-label.selected,
+.btn-label-filter.retain {
+	opacity: 1;
+}
