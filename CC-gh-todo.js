@@ -29,6 +29,7 @@
     // Create the defaults once
     var pluginName = 'CC_gh_todo',
         defaults = {
+    		app_name: 'CC-gh-todo',
         };
 
     // The actual plugin constructor
@@ -64,43 +65,10 @@
 		this._storage = $.githubEncryptedStorage(this.options);
 		
 		this.element.empty();
-	
-		this.labels = $.when ( this._storage.labels() )
 		
 		var self = this;
-		$title_bar = this.element.parent().parent().find('.panel-heading');
-			
-		// Create label filter buttons
-		this.labels.then(function(labels) {
-			$.each(labels, function(i, label) {
-				var $filter_label_btn = $('<a href="#" class="btn btn-xs pull-right btn-label-filter">' + label.name + '</a>');
-				
-				if (self.filter_labels().length <= 0 || self.filter_labels().indexOf(label.name) >= 0)
-					$filter_label_btn.addClass('retain');
-				
-				$filter_label_btn.css({
-					color: '#fff',
-					'background-color': '#' +  label.color
-				});
-				
-				$filter_label_btn.click(function() {
-					$(this).toggleClass('retain');
-					
-					self.filter_labels($title_bar.find('a.btn-label-filter.retain').map(function(i, $el) { return $el.text; }).toArray());
-					
-					self.reload_todolist();
-					return false;
-				});
-				$title_bar.append($filter_label_btn);
-				
-			});
-			$title_bar.append($('<span class="pull-right" style="margin-right:5px;">Filter: </span>'));
-		});
 		
-		// Create 'Add Todo' button
-		$add_todo_btn = $('<a href="#" id="add-todo-btn" class="btn btn-success btn-xs pull-right">Add Todo</a>');
-		$add_todo_btn.click(this.add_todo.bind(this));
-		$title_bar.append($add_todo_btn);
+		this.init_header();
 		
 		this.reload_todolist();
 		
@@ -141,6 +109,8 @@
 				
 				$label.click(function() {
 					$buttons.find('a').removeClass('selected');
+					$buttons.find('input').removeClass('selected');
+					$buttons.find('input').val('');
 					$(this).addClass('selected');
 					
 					return false;
@@ -148,6 +118,20 @@
 				
 				$buttons.append($label);
 			});
+			
+			$new_label_input = $('<input class="form-control new-label-input" type="text" placeholder="New Label">');
+			$new_label_input.css({
+				display: 'inline-block',
+				width: 'auto',
+				'margin-left': '10px'
+			});
+			$new_label_input.focus(function() {
+				$buttons.find('a').removeClass('selected');
+				$(this).addClass('selected');
+			});
+			
+			$buttons.append($new_label_input);
+			
 			self.$add_todo_modal.find('.modal-body').append($buttons);
 		});
 		
@@ -158,10 +142,19 @@
 			var title = $('#add-todo-title').val();
 			var priority = $('#add-todo-priority').val();
 			
+			var label = self.$add_todo_modal.find('a.btn-todo-label.selected').text();
+			if (!label)
+				label = self.$add_todo_modal.find('input.selected').val();
+			if (!label)
+				label = self.$add_todo_modal.find('a.btn-todo-label:first').text();
+			
 			$.when ( self._storage.saveObject({
 				priority: priority,
 				title: title
-			}, [self.$add_todo_modal.find('a.btn-todo-label.selected').text()]) ).then(self.reload_todolist.bind(self));
+			}, [label]) ).then( function(d) {
+				self.reload_todolist.bind(self)(d);
+				self.init_header();
+			});
 			
 			self.$add_todo_modal.modal('hide');
 		});
@@ -170,6 +163,51 @@
 			self.$add_todo_modal.find('#add-todo-title').focus();
 		});
     };
+    
+    Plugin.prototype.init_header = function() {
+    	var self = this;
+	
+		this.labels = $.when ( this._storage.labels() )
+		
+		$title_bar = this.element.parent().parent().find('.panel-heading');
+
+		$title_bar.find('a.btn-label-filter').remove();
+		$title_bar.find('span.filter-heading').remove();
+		$title_bar.find('a#add-todo-btn').remove();
+		
+		// Create label filter buttons
+		this.labels.then(function(labels) {
+			$.each(labels, function(i, label) {
+				var $filter_label_btn = $('<a href="#" class="btn btn-xs pull-right btn-label-filter">' + label.name + '</a>');
+				
+				if (self.filter_labels().length <= 0 || self.filter_labels().indexOf(label.name) >= 0)
+					$filter_label_btn.addClass('retain');
+				
+				$filter_label_btn.css({
+					color: '#fff',
+					'background-color': '#' +  label.color
+				});
+				
+				$filter_label_btn.click(function() {
+					$(this).toggleClass('retain');
+					
+					self.filter_labels($title_bar.find('a.btn-label-filter.retain').map(function(i, $el) { return $el.text; }).toArray());
+					
+					self.reload_todolist();
+					return false;
+				});
+				$title_bar.append($filter_label_btn);
+				
+			});
+			$title_bar.append($('<span class="filter-heading pull-right" style="margin-right:5px;">Filter: </span>'));
+		});
+		
+		// Create 'Add Todo' button
+		$add_todo_btn = $('<a href="#" id="add-todo-btn" class="btn btn-success btn-xs pull-right">Add Todo</a>');
+		$add_todo_btn.click(this.add_todo.bind(this));
+		$title_bar.append($add_todo_btn);
+    	
+    }
 	
 	Plugin.prototype.add_todo = function() {
 		this.$add_todo_modal.find('input').val('');
