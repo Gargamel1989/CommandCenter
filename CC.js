@@ -99,6 +99,8 @@
 				$block.find('.block').CC_gh_todo(block_options);
 			} else if (block_options.type === 'heartbeat') {
 				$block.find('.block').CC_heartbeat(block_options);
+			} else if (block_options.type === 'gh_wishlist') {
+				$block.find('.block').CC_gh_wishlist(block_options);
 			}
 		}
     };
