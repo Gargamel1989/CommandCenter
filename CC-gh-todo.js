@@ -62,7 +62,8 @@
 	};
 
     Plugin.prototype.init = function () {
-		this._storage = $.githubEncryptedStorage(this.options);
+		this._storage = githubEncryptedStorage(this.options);
+		this.labels = $.when ( this._storage.labels() )
 		
 		this.element.empty();
 		
@@ -71,8 +72,6 @@
 		this.init_header();
 		
 		this.reload_todolist();
-		
-		
 		
 		this.$add_todo_modal = $(
 			'<form id="add-todo-modal" class="modal fade" tabindex="-1" role="dialog">' +
@@ -166,14 +165,17 @@
     
     Plugin.prototype.init_header = function() {
     	var self = this;
-	
-		this.labels = $.when ( this._storage.labels() )
 		
-		$title_bar = this.element.parent().parent().find('.panel-heading');
+		let $title_bar = this.element.parent().parent().find('.panel-heading');
 
 		$title_bar.find('a.btn-label-filter').remove();
 		$title_bar.find('span.filter-heading').remove();
 		$title_bar.find('a#add-todo-btn').remove();
+		
+		// Create 'Add Todo' button
+		$add_todo_btn = $('<a href="#" id="add-todo-btn" class="btn btn-success btn-xs pull-right">Add Todo</a>');
+		$add_todo_btn.click(this.add_todo.bind(this));
+		$title_bar.append($add_todo_btn);
 		
 		// Create label filter buttons
 		this.labels.then(function(labels) {
@@ -201,11 +203,6 @@
 			});
 			$title_bar.append($('<span class="filter-heading pull-right" style="margin-right:5px;">Filter: </span>'));
 		});
-		
-		// Create 'Add Todo' button
-		$add_todo_btn = $('<a href="#" id="add-todo-btn" class="btn btn-success btn-xs pull-right">Add Todo</a>');
-		$add_todo_btn.click(this.add_todo.bind(this));
-		$title_bar.append($add_todo_btn);
     	
     }
 	
@@ -217,7 +214,7 @@
 	Plugin.prototype.reload_todolist = function() {
 		var self = this;
 		
-		$.when ( self._storage.objects(self.filter_labels(), 'or') ).then(function(objects) {
+		$.when ( self._storage.objects(self.filter_labels()) ).then(function(objects) {
 			objects.sort(function (a, b) { return a.json.priority - b.json.priority });
 			
 			self.element.empty();
@@ -227,7 +224,7 @@
 				
 				var $todo = $(
 					'<div class="col-xs-6">' +
-						'<div class="alert alert-small">' +	todo.title +	'</div>' +
+						'<div class="alert alert-prior">' +	todo.title +	'</div>' +
 					'</div>'
 				);
 				$todo.hide();
